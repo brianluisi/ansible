@@ -1,0 +1,18 @@
+- name: Check Disk Space
+  hosts: "{{ target_host }}"
+  gather_facts: True
+  become: yes
+  tasks:
+    - name: Get disk space information
+      ansible.builtin.command: "df -h --output=size,used,avail,target"
+      register: disk_space_raw
+
+    - name: Parse disk space information using awk
+      ansible.builtin.command: |
+        df -h --output=size,used,avail,target | awk 'NR>1 {print $1, $2, $3, $4}'
+      register: disk_space_parsed
+
+    - name: Show parsed disk space information
+      ansible.builtin.debug:
+        msg: "Mounted on {{ item.split()[3] }}: Size={{ item.split()[0] }}, Used={{ item.split()[1] }}, Available={{ item.split()[2] }}"
+      loop: "{{ disk_space_parsed.stdout_lines }}"
